@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BlockchainModule } from './blockchain/blockchain.module';
+import { IdentityModule } from './identity/identity.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -17,12 +21,9 @@ import { BlockchainModule } from './blockchain/blockchain.module';
       synchronize: true, // For development; use migrations in production
     }),
     BlockchainModule,
+    IdentityModule,
+    PrismaModule,
   ],
-import { IdentityModule } from './identity/identity.module';
-import { PrismaModule } from './prisma/prisma.module';
-
-@Module({
-  imports: [IdentityModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
