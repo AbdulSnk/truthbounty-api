@@ -18,6 +18,11 @@ import { BlockchainModule } from './blockchain/blockchain.module';
     }),
     BlockchainModule,
   ],
+import { IdentityModule } from './identity/identity.module';
+import { PrismaModule } from './prisma/prisma.module';
+
+@Module({
+  imports: [IdentityModule, PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })
