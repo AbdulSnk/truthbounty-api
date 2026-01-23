@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DisputeModule } from './dispute/dispute.module';
+import { IdentityModule } from './identity/identity.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -16,9 +18,11 @@ import { DisputeModule } from './dispute/dispute.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
-    DisputeModule,
+    DisputeModule, IdentityModule, PrismaModule
   ],
   controllers: [AppController],
   providers: [AppService],
+
+
 })
 export class AppModule {}
