@@ -1,47 +1,28 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { IndexerModule } from './indexer';
-import { IndexerConfigService } from './config';
-import { IndexedEvent, IndexingState } from './entities';
+import { DisputeModule } from './dispute/dispute.module';
+import { IdentityModule } from './identity/identity.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
-    // Load environment variables
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      username: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'truthbounty',
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true,
     }),
-
-    // Configure TypeORM database connection
-    TypeOrmModule.forRootAsync({
-      inject: [IndexerConfigService],
-      useFactory: (configService: IndexerConfigService) => {
-        const dbConfig = configService.getDatabaseConfig();
-        return {
-          type: 'postgres',
-          host: dbConfig.host,
-          port: dbConfig.port,
-          username: dbConfig.username,
-          password: dbConfig.password,
-          database: dbConfig.database,
-          entities: [IndexedEvent, IndexingState],
-          synchronize: dbConfig.synchronize,
-          logging: dbConfig.logging,
-        };
-      },
-    }),
-
-    // Register indexer module
-    IndexerModule,
+    DisputeModule, IdentityModule, PrismaModule
   ],
-import { BlockchainModule } from './blockchain/blockchain.module';
-
-@Module({
-  imports: [BlockchainModule],
   controllers: [AppController],
-  providers: [AppService, IndexerConfigService],
+  providers: [AppService],
+
+
 })
 export class AppModule {}
