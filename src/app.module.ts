@@ -7,10 +7,14 @@ import { BlockchainModule } from './blockchain/blockchain.module';
 import { DisputeModule } from './dispute/dispute.module';
 import { IdentityModule } from './identity/identity.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -19,8 +23,10 @@ import { PrismaModule } from './prisma/prisma.module';
       password: process.env.DB_PASSWORD || 'password',
       database: process.env.DB_NAME || 'truthbounty',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // For development; use migrations in production
+      synchronize: process.env.DATABASE_SYNCHRONIZE === 'true', // Use env var for safety
+      logging: process.env.DATABASE_LOGGING === 'true',
     }),
+    RedisModule,
     BlockchainModule,
     DisputeModule,
     IdentityModule,
