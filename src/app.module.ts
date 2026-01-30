@@ -13,6 +13,7 @@ import { AggregationModule } from './aggregation/aggregation.module'; // if adde
 
 import throttlerConfig from './config/throttler.config';
 import { WalletThrottlerGuard } from './common/guards/wallet-throttler.guard';
+import { SybilResistanceModule } from './sybil-resistance/sybil-resistance.module';
 
 // In-memory storage for development (no Redis needed)
 class ThrottlerMemoryStorage {
@@ -188,6 +189,10 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
         };
       },
     }),
+
+
+
+    SybilResistanceModule,
 
   ],
   controllers: [AppController],
