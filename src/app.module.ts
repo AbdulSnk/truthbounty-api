@@ -145,6 +145,7 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
   return new ThrottlerMemoryStorage();
 }
 
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -154,7 +155,7 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
+      port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME || 'postgres',
       password: process.env.DB_PASSWORD || 'password',
       database: process.env.DB_NAME || 'truthbounty',
@@ -167,6 +168,8 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
     DisputeModule,
     IdentityModule,
     PrismaModule,
+    AggregationModule, // optional but recommended
+
       load: [throttlerConfig],
     }),
     ThrottlerModule.forRootAsync({
@@ -186,7 +189,11 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
         };
       },
     }),
+
+
+
     SybilResistanceModule,
+
   ],
   controllers: [AppController],
   providers: [
@@ -197,4 +204,8 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
     },
   ],
 })
+
+export class AppModule {}
+
 export class AppModule { }
+
