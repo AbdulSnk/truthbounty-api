@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Claim } from './entities/claim.entity';
+import { ClaimsCache } from '../cache/claims.cache';
 
 interface VoteWeightSummary {
   trueWeight: number;
@@ -15,7 +16,8 @@ export class ClaimResolutionService {
   constructor(
     @InjectRepository(Claim)
     private readonly claimRepo: Repository<Claim>,
-  ) {}
+    private readonly claimsCache: ClaimsCache,
+  ) { }
 
   computeConfidenceScore(votes: VoteWeightSummary): number | null {
     const { trueWeight, falseWeight } = votes;
@@ -48,6 +50,8 @@ export class ClaimResolutionService {
     claim.confidenceScore = confidence;
     claim.finalized = true;
 
-    return this.claimRepo.save(claim);
+    const savedClaim = await this.claimRepo.save(claim);
+    await this.claimsCache.invalidateClaim(claimId);
+    return savedClaim;
   }
 }

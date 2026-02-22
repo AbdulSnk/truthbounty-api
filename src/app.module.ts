@@ -17,6 +17,8 @@ import { WalletThrottlerGuard } from './common/guards/wallet-throttler.guard';
 import { SybilResistanceModule } from './sybil-resistance/sybil-resistance.module';
 import { AggregationModule } from './aggregation/aggregation.module';
 import { JobsModule } from './jobs/jobs.module';
+import { CacheModule } from './cache/cache.module';
+import { ClaimsModule } from './claims/claims.module';
 
 // In-memory storage for development (no Redis needed)
 class ThrottlerMemoryStorage {
@@ -194,6 +196,8 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
     SybilResistanceModule,
     AggregationModule,
     JobsModule,
+    CacheModule,
+    ClaimsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -204,5 +208,5 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
 
