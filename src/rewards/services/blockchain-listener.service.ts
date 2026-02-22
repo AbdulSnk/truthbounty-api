@@ -33,7 +33,7 @@ export class BlockchainListenerService implements OnModuleInit {
     const rpcUrl = this.configService.get<string>('BLOCKCHAIN_RPC_URL');
     const contractAddress = this.configService.get<string>(
       'REWARD_CONTRACT_ADDRESS',
-    );
+    ) || '0x0000000000000000000000000000000000000000';
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.contract = new ethers.Contract(
@@ -89,7 +89,9 @@ export class BlockchainListenerService implements OnModuleInit {
       );
 
       for (const event of claimEvents) {
-        await this.handleRewardClaimedEvent(event);
+        if (event instanceof ethers.EventLog) {
+          await this.handleRewardClaimedEvent(event);
+        }
       }
 
       // Query RewardDistributed events
@@ -101,7 +103,9 @@ export class BlockchainListenerService implements OnModuleInit {
       );
 
       for (const event of distEvents) {
-        await this.handleRewardDistributedEvent(event);
+        if (event instanceof ethers.EventLog) {
+          await this.handleRewardDistributedEvent(event);
+        }
       }
 
       this.logger.log(
