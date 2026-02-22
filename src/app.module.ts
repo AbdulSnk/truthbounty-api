@@ -7,7 +7,6 @@ import { AppService } from './app.service';
 import { RewardsModule } from './rewards/rewards.module';
 import blockchainConfig from './config/blockchain.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { DisputeModule } from './dispute/dispute.module';
 import { IdentityModule } from './identity/identity.module';
@@ -16,6 +15,10 @@ import { RedisModule } from './redis/redis.module';
 import throttlerConfig from './config/throttler.config';
 import { WalletThrottlerGuard } from './common/guards/wallet-throttler.guard';
 import { SybilResistanceModule } from './sybil-resistance/sybil-resistance.module';
+import { AggregationModule } from './aggregation/aggregation.module';
+import { JobsModule } from './jobs/jobs.module';
+import { CacheModule } from './cache/cache.module';
+import { ClaimsModule } from './claims/claims.module';
 
 // In-memory storage for development (no Redis needed)
 class ThrottlerMemoryStorage {
@@ -154,7 +157,7 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [blockchainConfig,throttlerConfig],
+      load: [blockchainConfig, throttlerConfig],
       envFilePath: ['.env.local', '.env'],
     }),
     TypeOrmModule.forRoot({
@@ -165,25 +168,14 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
       password: process.env.DB_PASSWORD || 'password',
       database: process.env.DB_NAME || 'truthbounty',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.DATABASE_SYNCHRONIZE === 'true', // Use env var for safety
+      synchronize: process.env.DATABASE_SYNCHRONIZE === 'true',
       logging: process.env.DATABASE_LOGGING === 'true',
     }),
-    RedisModule,
-    BlockchainModule,
-    DisputeModule,
-    IdentityModule,
-    PrismaModule,
-    AggregationModule, // optional but recommended
-
-      load: [throttlerConfig],
-    }),
-    
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
         const storage = await createThrottlerStorage(configService);
-
         return {
           throttlers: [
             {
@@ -195,26 +187,17 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
         };
       },
     }),
-
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'password',
-      database: process.env.DB_NAME || 'truthbounty',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // For development; use migrations in production
-    }),
+    RedisModule,
     BlockchainModule,
     DisputeModule,
     IdentityModule,
     PrismaModule,
-     RewardsModule,
-
-
+    RewardsModule,
     SybilResistanceModule,
-
+    AggregationModule,
+    JobsModule,
+    CacheModule,
+    ClaimsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -225,8 +208,5 @@ async function createThrottlerStorage(configService: ConfigService): Promise<any
     },
   ],
 })
-
-export class AppModule {}
-
 export class AppModule { }
 

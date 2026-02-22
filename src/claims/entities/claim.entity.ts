@@ -21,5 +21,8 @@ export class Claim {
 
   @Column({ default: false })
   finalized: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
 
