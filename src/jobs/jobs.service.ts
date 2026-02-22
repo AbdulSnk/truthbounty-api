@@ -7,6 +7,7 @@ import { Wallet } from '../entities/wallet.entity';
 import { Claim } from '../claims/entities/claim.entity';
 import { User } from '../entities/user.entity';
 import { AggregationService } from '../aggregation/aggregation.service';
+import { ClaimsCache } from '../cache/claims.cache';
 
 /**
  * JobsService
@@ -27,8 +28,9 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
     private readonly claimRepo: Repository<Claim>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly claimsCache: ClaimsCache,
     private readonly aggregationService?: AggregationService,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     this.logger.log('JobsService initialized (bullmq to be integrated)');
@@ -93,6 +95,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         }
 
         await this.claimRepo.save(claim);
+        await this.claimsCache.invalidateClaim(claim.id);
         this.logger.log(`Updated claim ${claim.id} confidence=${claim.confidenceScore}`);
       } catch (err) {
         this.logger.error(`Error processing claim ${claim.id}: ${err?.message || err}`);

@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('claims')
 export class Claim {
@@ -18,4 +18,7 @@ export class Claim {
 
   @Column({ default: false })
   finalized: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
