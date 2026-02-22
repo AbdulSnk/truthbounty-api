@@ -42,7 +42,7 @@ export class WeightedVoteResolutionService {
     const effectiveConfig = { ...this.defaultConfig, ...config };
     
     if (votes.length === 0) {
-      return this.createUnresolvedResult('No votes submitted', effectiveConfig);
+      return this.createUnresolvedResult('unknown', 'No votes submitted', effectiveConfig);
     }
 
     // Step 1: Calculate weights for all votes
@@ -141,6 +141,7 @@ export class WeightedVoteResolutionService {
     // Safety checks
     if (totalWeight < config.minTotalWeight) {
       return this.createUnresolvedResult(
+        aggregation.claimId,
         `Insufficient total weight (${totalWeight} < ${config.minTotalWeight})`,
         config
       );
@@ -157,6 +158,7 @@ export class WeightedVoteResolutionService {
     const maxIndividualShare = this.getMaxIndividualShare(aggregation.votes);
     if (maxIndividualShare > config.maxReputationShare) {
       return this.createUnresolvedResult(
+        aggregation.claimId,
         `Single verifier dominance (${(maxIndividualShare * 100).toFixed(1)}% share)`,
         config
       );
@@ -239,11 +241,12 @@ export class WeightedVoteResolutionService {
    * Create unresolved result with reason
    */
   private createUnresolvedResult(
-    reason: string, 
+    claimId: string,
+    reason: string,
     config: ResolutionConfig
   ): ClaimResolution {
     return {
-      claimId: 'unknown',
+      claimId,
       resolvedVerdict: 'UNRESOLVED',
       confidenceScore: 0,
       resolutionMargin: 0,
