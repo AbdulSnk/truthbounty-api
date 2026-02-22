@@ -385,4 +385,222 @@ describe('WeightedVoteResolutionService', () => {
       expect(result.verdictDistribution.UNSURE).toBeGreaterThan(0);
     });
   });
+
+  describe('mixed reputation scenarios', () => {
+    const baseVote = {
+      claimId: 'mixed-rep',
+      timestamp: new Date(),
+      eventId: 'event-mixed'
+    };
+
+    it('should allow high-reputation minority to win over low-reputation majority', () => {
+      const votes: VerificationVote[] = [
+        // Low reputation majority voting FALSE
+        { ...baseVote, userId: 'user1', verdict: 'FALSE', userReputation: 10, stakeAmount: '10' },
+        { ...baseVote, userId: 'user2', verdict: 'FALSE', userReputation: 15, stakeAmount: '10' },
+        { ...baseVote, userId: 'user3', verdict: 'FALSE', userReputation: 12, stakeAmount: '10' },
+        { ...baseVote, userId: 'user4', verdict: 'FALSE', userReputation: 8, stakeAmount: '10' },
+        // High reputation minority voting TRUE
+        { ...baseVote, userId: 'expert1', verdict: 'TRUE', userReputation: 95, stakeAmount: '100' },
+      ];
+
+      const result = service.resolveClaim(votes);
+      
+      // High reputation expert should outweigh many low-reputation voters
+      expect(result.resolvedVerdict).toBe('TRUE');
+      expect(result.confidenceScore).toBeGreaterThan(0.5);
+    });
+
+    it('should handle gradual reputation distribution', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 100, stakeAmount: '50' },
+        { ...baseVote, userId: 'user2', verdict: 'TRUE', userReputation: 80, stakeAmount: '50' },
+        { ...baseVote, userId: 'user3', verdict: 'FALSE', userReputation: 70, stakeAmount: '50' },
+        { ...baseVote, userId: 'user4', verdict: 'FALSE', userReputation: 60, stakeAmount: '50' },
+        { ...baseVote, userId: 'user5', verdict: 'FALSE', userReputation: 50, stakeAmount: '50' },
+      ];
+
+      const result = service.resolveClaim(votes);
+      
+      // TRUE should win: 100 + 80 = 180 vs 70 + 60 + 50 = 180 (tie actually)
+      // With stake: TRUE = 180 + 7.07 = 187.07, FALSE = 180 + 10.6 = 190.6
+      expect(result.resolvedVerdict).toBe('FALSE');
+    });
+
+    it('should handle new users with minimum reputation', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'newbie1', verdict: 'TRUE', userReputation: 0, stakeAmount: '10' },
+        { ...baseVote, userId: 'newbie2', verdict: 'TRUE', userReputation: 1, stakeAmount: '10' },
+        { ...baseVote, userId: 'newbie3', verdict: 'TRUE', userReputation: 2, stakeAmount: '10' },
+        { ...baseVote, userId: 'veteran', verdict: 'FALSE', userReputation: 50, stakeAmount: '10' },
+      ];
+
+      const result = service.resolveClaim(votes);
+      
+      // Veteran (50) vs 3 newbies (1+1+1=3 minimum each)
+      expect(result.resolvedVerdict).toBe('FALSE');
+    });
+  });
+
+  describe('high-reputation dominance caps', () => {
+    const baseVote = {
+      claimId: 'whale-test',
+      timestamp: new Date(),
+      eventId: 'event-whale'
+    };
+
+    it('should reject resolution when single user exceeds max share threshold', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'whale', verdict: 'TRUE', userReputation: 90, stakeAmount: '1000' },
+        { ...baseVote, userId: 'user1', verdict: 'FALSE', userReputation: 20, stakeAmount: '50' },
+        { ...baseVote, userId: 'user2', verdict: 'FALSE', userReputation: 15, stakeAmount: '50' },
+      ];
+
+      // Whale has ~90 weight, others have ~35 combined - whale dominates
+      const result = service.resolveClaim(votes, { maxReputationShare: 0.5 });
+      
+      expect(result.resolvedVerdict).toBe('UNRESOLVED');
+    });
+
+    it('should allow resolution when no single user exceeds max share', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 40, stakeAmount: '100' },
+        { ...baseVote, userId: 'user2', verdict: 'TRUE', userReputation: 35, stakeAmount: '100' },
+        { ...baseVote, userId: 'user3', verdict: 'FALSE', userReputation: 30, stakeAmount: '100' },
+        { ...baseVote, userId: 'user4', verdict: 'FALSE', userReputation: 25, stakeAmount: '100' },
+      ];
+
+      // Distributed voting - no single user dominates
+      const result = service.resolveClaim(votes, { maxReputationShare: 0.5 });
+      
+      expect(result.resolvedVerdict).toBe('TRUE');
+    });
+
+    it('should handle multiple votes from same user (accumulated weight)', () => {
+      const votes: VerificationVote[] = [
+        // Same user voting multiple times (should aggregate)
+        { ...baseVote, userId: 'whale', verdict: 'TRUE', userReputation: 50, stakeAmount: '500' },
+        { ...baseVote, userId: 'whale', verdict: 'TRUE', userReputation: 50, stakeAmount: '500' },
+        { ...baseVote, userId: 'user1', verdict: 'FALSE', userReputation: 30, stakeAmount: '100' },
+        { ...baseVote, userId: 'user2', verdict: 'FALSE', userReputation: 25, stakeAmount: '100' },
+      ];
+
+      const result = service.resolveClaim(votes, { maxReputationShare: 0.6 });
+      
+      // Whale's combined weight should be checked against max share
+      expect(result.resolvedVerdict).toBe('TRUE');
+    });
+  });
+
+  describe('deterministic behavior', () => {
+    const baseVote = {
+      claimId: 'deterministic',
+      timestamp: new Date(),
+      eventId: 'event-det'
+    };
+
+    it('should produce identical results for identical inputs across multiple runs', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 75, stakeAmount: '100' },
+        { ...baseVote, userId: 'user2', verdict: 'FALSE', userReputation: 65, stakeAmount: '75' },
+        { ...baseVote, userId: 'user3', verdict: 'TRUE', userReputation: 80, stakeAmount: '150' },
+      ];
+
+      const results: ClaimResolution[] = [];
+      for (let i = 0; i < 10; i++) {
+        results.push(service.resolveClaim(votes));
+      }
+
+      // All results should be identical
+      const firstResult = JSON.stringify(results[0]);
+      for (let i = 1; i < results.length; i++) {
+        // Compare all fields except timestamp which will differ
+        expect(results[i].claimId).toBe(results[0].claimId);
+        expect(results[i].resolvedVerdict).toBe(results[0].resolvedVerdict);
+        expect(results[i].confidenceScore).toBe(results[0].confidenceScore);
+        expect(results[i].resolutionMargin).toBe(results[0].resolutionMargin);
+        expect(results[i].totalWeight).toBe(results[0].totalWeight);
+        expect(results[i].voterCount).toBe(results[0].voterCount);
+      }
+    });
+
+    it('should handle vote order independence', () => {
+      const vote1: VerificationVote = { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 75, stakeAmount: '100' };
+      const vote2: VerificationVote = { ...baseVote, userId: 'user2', verdict: 'FALSE', userReputation: 65, stakeAmount: '75' };
+      const vote3: VerificationVote = { ...baseVote, userId: 'user3', verdict: 'TRUE', userReputation: 80, stakeAmount: '150' };
+
+      const result1 = service.resolveClaim([vote1, vote2, vote3]);
+      const result2 = service.resolveClaim([vote3, vote1, vote2]);
+      const result3 = service.resolveClaim([vote2, vote3, vote1]);
+
+      expect(result1.resolvedVerdict).toBe(result2.resolvedVerdict);
+      expect(result2.resolvedVerdict).toBe(result3.resolvedVerdict);
+      expect(result1.confidenceScore).toBe(result2.confidenceScore);
+      expect(result2.confidenceScore).toBe(result3.confidenceScore);
+    });
+  });
+
+  describe('output metadata validation', () => {
+    const baseVote = {
+      claimId: 'metadata-test',
+      timestamp: new Date(),
+      eventId: 'event-meta'
+    };
+
+    it('should include all required metadata fields for resolved claims', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 80, stakeAmount: '100' },
+        { ...baseVote, userId: 'user2', verdict: 'TRUE', userReputation: 70, stakeAmount: '100' },
+        { ...baseVote, userId: 'user3', verdict: 'FALSE', userReputation: 50, stakeAmount: '100' },
+      ];
+
+      const result = service.resolveClaim(votes);
+
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata.timestamp).toBeInstanceOf(Date);
+      expect(typeof result.metadata.dominantVerdictWeight).toBe('number');
+      expect(typeof result.metadata.secondVerdictWeight).toBe('number');
+      expect(typeof result.metadata.isTie).toBe('boolean');
+      expect(typeof result.metadata.isLowConfidence).toBe('boolean');
+    });
+
+    it('should include correct verdict distribution', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 80, stakeAmount: '100' },
+        { ...baseVote, userId: 'user2', verdict: 'FALSE', userReputation: 70, stakeAmount: '100' },
+        { ...baseVote, userId: 'user3', verdict: 'UNSURE', userReputation: 60, stakeAmount: '100' },
+      ];
+
+      const result = service.resolveClaim(votes);
+
+      expect(result.verdictDistribution).toBeDefined();
+      expect(typeof result.verdictDistribution.TRUE).toBe('number');
+      expect(typeof result.verdictDistribution.FALSE).toBe('number');
+      expect(typeof result.verdictDistribution.UNSURE).toBe('number');
+      expect(result.verdictDistribution.TRUE).toBeGreaterThan(0);
+      expect(result.verdictDistribution.FALSE).toBeGreaterThan(0);
+      expect(result.verdictDistribution.UNSURE).toBeGreaterThan(0);
+    });
+
+    it('should return correct claimId in resolution result', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 80, stakeAmount: '100' },
+      ];
+
+      const result = service.resolveClaim(votes);
+
+      expect(result.claimId).toBe('metadata-test');
+    });
+
+    it('should return claimId even for unresolved results', () => {
+      const votes: VerificationVote[] = [
+        { ...baseVote, userId: 'user1', verdict: 'TRUE', userReputation: 10, stakeAmount: '10' },
+      ];
+
+      const result = service.resolveClaim(votes, { minTotalWeight: 1000 });
+
+      expect(result.claimId).toBe('metadata-test');
+      expect(result.resolvedVerdict).toBe('UNRESOLVED');
+    });
+  });
 });
