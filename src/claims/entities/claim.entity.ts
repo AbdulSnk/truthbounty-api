@@ -1,6 +1,9 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('claims')
+@Index(['finalized'])
+@Index(['confidenceScore'])
+@Index(['resolvedVerdict'])
 export class Claim {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -19,3 +22,4 @@ export class Claim {
   @Column({ default: false })
   finalized: boolean;
 }
+

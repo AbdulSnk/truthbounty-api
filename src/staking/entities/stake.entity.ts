@@ -2,6 +2,9 @@ import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 @Index(['walletAddress', 'claimId'], { unique: true })
+@Index(['claimId'])
+@Index(['walletAddress'])
+@Index(['updatedAt'])
 export class Stake {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -21,3 +24,4 @@ export class Stake {
   @Column()
   updatedAt: Date;
 }
+
