@@ -59,13 +59,13 @@ export class IndexedEvent {
   /**
    * Raw event data (JSON serialized)
    */
-  @Column({ type: 'jsonb' })
+  @Column({ type: 'simple-json' })
   eventData: Record<string, any>;
 
   /**
    * Parsed and normalized event payload
    */
-  @Column({ type: 'jsonb' })
+  @Column({ type: 'simple-json' })
   parsedData: Record<string, any>;
 
   /**
@@ -90,7 +90,7 @@ export class IndexedEvent {
   /**
    * Timestamp when event was processed
    */
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   processedAt: Date | null;
 
   /**

@@ -68,13 +68,13 @@ export class Dispute {
   @Column({ nullable: true })
   initiatorId: string;
 
-  @Column('jsonb', { default: {} })
+  @Column('simple-json', { default: {} })
   metadata: Record<string, any>;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   reviewStartedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   resolvedAt: Date;
 
   @CreateDateColumn()

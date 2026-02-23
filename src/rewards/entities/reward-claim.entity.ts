@@ -44,7 +44,7 @@ export class RewardClaim {
   @Column({ type: 'varchar', nullable: true })
   eventName: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata: Record<string, any>;
 
   @CreateDateColumn()
