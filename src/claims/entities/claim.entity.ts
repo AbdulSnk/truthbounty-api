@@ -1,4 +1,5 @@
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { Evidence } from './evidence.entity';
 
 @Entity('claims')
 @Index(['finalized'])
@@ -24,5 +25,8 @@ export class Claim {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @OneToMany(() => Evidence, (evidence) => evidence.claim, { cascade: true })
+  evidences: Evidence[];
 }
 

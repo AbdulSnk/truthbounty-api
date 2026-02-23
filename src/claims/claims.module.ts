@@ -7,6 +7,7 @@ import { Stake } from '../staking/entities/stake.entity';
 import { ClaimsService } from './claims.service';
 import { ClaimsController } from './claims.controller';
 import { ClaimResolutionService } from './claim-resolution.service';
+import { EvidenceService } from './evidence.service';
 import { CacheModule } from '../cache/cache.module';
 
 @Module({
@@ -15,7 +16,7 @@ import { CacheModule } from '../cache/cache.module';
         CacheModule,
     ],
     controllers: [ClaimsController],
-    providers: [ClaimsService, ClaimResolutionService],
-    exports: [ClaimResolutionService, ClaimsService],
+    providers: [ClaimsService, ClaimResolutionService, EvidenceService],
+    exports: [ClaimResolutionService, ClaimsService, EvidenceService],
 })
 export class ClaimsModule { }
