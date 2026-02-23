@@ -40,15 +40,13 @@ export class Dispute {
   claimId: string;
 
   @Column({
-    type: 'enum',
-    enum: DisputeStatus,
+    type: 'varchar',
     default: DisputeStatus.OPEN,
   })
   status: DisputeStatus;
 
   @Column({
-    type: 'enum',
-    enum: DisputeTrigger,
+    type: 'varchar',
   })
   trigger: DisputeTrigger;
 
@@ -59,8 +57,7 @@ export class Dispute {
   finalConfidence: number;
 
   @Column({
-    type: 'enum',
-    enum: DisputeOutcome,
+    type: 'varchar',
     nullable: true,
   })
   outcome: DisputeOutcome;
@@ -68,13 +65,13 @@ export class Dispute {
   @Column({ nullable: true })
   initiatorId: string;
 
-  @Column('jsonb', { default: {} })
+  @Column('simple-json', { default: {} })
   metadata: Record<string, any>;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   reviewStartedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   resolvedAt: Date;
 
   @CreateDateColumn()
