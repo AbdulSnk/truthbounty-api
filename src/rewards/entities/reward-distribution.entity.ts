@@ -33,7 +33,7 @@ export class RewardDistribution {
   @Column({ type: 'int' })
   logIndex: number;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   blockTimestamp: Date;
 
   @Column({ type: 'varchar', nullable: true })

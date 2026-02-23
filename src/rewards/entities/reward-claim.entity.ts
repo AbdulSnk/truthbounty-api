@@ -38,7 +38,7 @@ export class RewardClaim {
   @Column({ type: 'int' })
   logIndex: number; // Unique identifier within a transaction
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   blockTimestamp: Date;
 
   @Column({ type: 'varchar', nullable: true })
