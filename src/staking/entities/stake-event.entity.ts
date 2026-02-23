@@ -19,8 +19,7 @@ export class StakeEvent {
   claimId: string;
 
   @Column({
-    type: 'enum',
-    enum: StakingEventType,
+    type: 'varchar',
   })
   type: StakingEventType;
 
