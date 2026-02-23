@@ -110,7 +110,7 @@ export class IndexingState {
   /**
    * When was the last indexing attempt
    */
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   lastIndexedAt: Date | null;
 
   /**
