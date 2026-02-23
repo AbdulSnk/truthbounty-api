@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 
 export enum DisputeStatus {
@@ -27,6 +28,10 @@ export enum DisputeTrigger {
 }
 
 @Entity('disputes')
+@Index(['claimId'])
+@Index(['status'])
+@Index(['createdAt'])
+@Index(['claimId', 'status'])
 export class Dispute {
   @PrimaryGeneratedColumn('uuid')
   id: string;

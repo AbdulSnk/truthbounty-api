@@ -3,6 +3,11 @@ import { StakingEventType } from "../types/staking-event.type";
 
 @Entity()
 @Index(['txHash'], { unique: true })
+@Index(['claimId'])
+@Index(['walletAddress'])
+@Index(['timestamp'])
+@Index(['blockNumber'])
+@Index(['claimId', 'walletAddress'])
 export class StakeEvent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -31,3 +36,4 @@ export class StakeEvent {
   @Column()
   timestamp: Date;
 }
+
