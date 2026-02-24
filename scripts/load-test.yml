@@ -1,0 +1,26 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 30
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp up load"
+    - duration: 60
+      arrivalRate: 50
+      name: "Sustain load"
+  payload:
+    # We can inject data, but for now we'll just generate random data in a function
+    # or just send static JSON
+  processor: "./artillery-processor.js"
+scenarios:
+  - name: "Submit claim"
+    flow:
+      - function: "generatePayload"
+      - post:
+          url: "/claims"
+          json:
+            claimId: "{{ claimId }}"
+            data: "Test Claim Data for Load Testing"
+            source: "artillery-load-test"
+          expect:
+            - statusCode: 201
