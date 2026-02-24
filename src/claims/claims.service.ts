@@ -70,4 +70,21 @@ export class ClaimsService {
         await this.claimsCache.setUserClaims(wallet, claims);
         return claims;
     }
+
+    /**
+     * Create a new claim (Added for Load Testing purposes)
+     */
+    async createClaim(data: any): Promise<Claim> {
+        const claim = this.claimRepo.create({
+            resolvedVerdict: Math.random() > 0.5,
+            confidenceScore: Math.random() * 0.9 + 0.1, // Generate mock score
+            finalized: false,
+        });
+        const savedClaim = await this.claimRepo.save(claim);
+
+        // Using setClaim caching to simulate real world workload
+        await this.claimsCache.setClaim(savedClaim.id, savedClaim);
+
+        return savedClaim;
+    }
 }

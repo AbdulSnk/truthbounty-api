@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body } from '@nestjs/common';
 import { ClaimsService } from './claims.service';
 
 @Controller('claims')
@@ -18,5 +18,10 @@ export class ClaimsController {
     @Get(':id')
     async getOne(@Param('id') id: string) {
         return this.claimsService.findOne(id);
+    }
+
+    @Post()
+    async createOne(@Body() data: any) {
+        return this.claimsService.createClaim(data);
     }
 }
