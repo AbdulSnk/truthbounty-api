@@ -1,6 +1,10 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { Evidence } from './evidence.entity';
 
 @Entity('claims')
+@Index(['finalized'])
+@Index(['confidenceScore'])
+@Index(['resolvedVerdict'])
 export class Claim {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -21,4 +25,8 @@ export class Claim {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @OneToMany(() => Evidence, (evidence) => evidence.claim, { cascade: true })
+  evidences: Evidence[];
 }
+

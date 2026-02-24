@@ -18,6 +18,6 @@ export class ProcessedEvent {
   @Column({ name: 'event_type', length: 100 })
   eventType: string;
 
-  @Column({ name: 'processed_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ name: 'processed_at', type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   processedAt: Date;
 }
