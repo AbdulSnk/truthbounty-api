@@ -25,7 +25,36 @@ export class IpfsService {
   }
 
   getGatewayUrl(cid: string): string | undefined {
-    if (typeof this.provider.getUrl === 'function') return this.provider.getUrl(cid);
-    return undefined;
+    if (typeof this.provider.getUrl !== 'function') return undefined;
+
+    const raw = this.provider.getUrl(cid);
+    if (!raw) return undefined;
+
+    return this.sanitizeGatewayUrl(raw);
+  }
+
+  /**
+   * Sanitize a gateway URL returned by an IPFS provider.
+   * - Only allow http/https schemes
+   * - Reject URLs containing control characters or angle brackets
+   * - Return a normalized URL string or undefined for unsafe values
+   */
+  private sanitizeGatewayUrl(urlStr: string): string | undefined {
+    try {
+      const url = new URL(urlStr);
+
+      // Only allow http(s)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+
+      // Disallow characters commonly used in XSS vectors
+      const unsafePattern = /[<>\r\n]/;
+      if (unsafePattern.test(url.href)) return undefined;
+
+      // Return normalized URL (this will percent-encode parts as needed)
+      return url.toString();
+    } catch (err) {
+      this.logger.warn(`Invalid gateway URL from provider: ${urlStr}`);
+      return undefined;
+    }
   }
 }
