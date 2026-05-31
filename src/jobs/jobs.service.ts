@@ -161,9 +161,24 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
         if (agg.confidence > FINALIZATION_THRESHOLD) {
           claim.finalized = true;
           claim.resolvedVerdict = agg.status === 'VERIFIED_TRUE';
+        const updateFields: Partial<Claim> = {
+          confidenceScore: result.confidence / 100,
+        };
+
+        if (result.confidence > 50) {
+          updateFields.finalized = true;
+          updateFields.resolvedVerdict = result.status === 'VERIFIED_TRUE';
         }
 
-        await this.claimRepo.save(claim);
+        const updated = await this.tryUpdateClaimIfNotFinalized(claim.id, updateFields);
+
+        if (!updated) {
+          this.logger.debug(
+            `Claim ${claim.id} was updated by a concurrent worker; skipping stale aggregation write`,
+          );
+          continue;
+        }
+
         await this.claimsCache.invalidateClaim(claim.id);
         result.updated++;
 
@@ -173,6 +188,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
               ? `, finalized → verdict=${claim.resolvedVerdict}`
               : ''),
         );
+        this.logger.log(`Updated claim ${claim.id} confidence=${updateFields.confidenceScore}`);
       } catch (err) {
         result.errors++;
         this.logger.error(
@@ -201,6 +217,22 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
    * stakes carry an explicit verdict field, update `deriveVotedTrue` below.
    */
   private async computeReputation(): Promise<BatchResult> {
+  private async tryUpdateClaimIfNotFinalized(
+    claimId: string,
+    updateFields: Partial<Claim>,
+  ): Promise<boolean> {
+    const result = await this.claimRepo
+      .createQueryBuilder()
+      .update(Claim)
+      .set(updateFields)
+      .where('id = :id', { id: claimId })
+      .andWhere('finalized = false')
+      .execute();
+
+    return (result.affected ?? 0) > 0;
+  }
+
+  private async computeReputation() {
     this.logger.debug('computeReputation: starting');
     const result: BatchResult = { processed: 0, updated: 0, errors: 0 };
 
