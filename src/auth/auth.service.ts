@@ -6,9 +6,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RedisService } from '../redis/redis.service';
 
+interface ChallengeRecord {
+  nonce: string;
+  issuedAt: number; // Unix ms — app-layer TTL source of truth
+}
+
 @Injectable()
 export class AuthService {
-  private readonly NONCE_TTL_SECONDS = 5 * 60; // 5 minutes
+  private readonly NONCE_TTL_SECONDS = 5 * 60; // 5 minutes — kept in sync with Redis SETEX
 
   private readonly logger = new Logger(AuthService.name);
 
@@ -23,11 +28,13 @@ export class AuthService {
    */
   async generateChallenge(address: string): Promise<string> {
     const nonce = this.generateRandomNonce();
-    // Persist nonce to Redis with TTL to allow scaling across instances
     const key = `auth:nonce:${address.toLowerCase()}`;
+    const record: ChallengeRecord = { nonce, issuedAt: Date.now() };
 
     try {
-      const ok = await this.redisService.set(key, nonce, this.NONCE_TTL_SECONDS);
+      // Store nonce + issuedAt together so the login path can enforce expiry
+      // independently of Redis TTL, eliminating Redis-vs-app clock desync.
+      const ok = await this.redisService.set(key, JSON.stringify(record), this.NONCE_TTL_SECONDS);
       if (!ok) {
         this.logger.error(`Failed to persist nonce for ${address}`);
         throw new InternalServerErrorException('Failed to generate challenge. Please try again later.');
@@ -59,14 +66,32 @@ export class AuthService {
       throw new UnauthorizedException('Signature verification failed. Address mismatch.');
     }
 
-    // 3. Verify the message contains a valid nonce
+    // 3. Verify the message contains a valid, non-expired nonce
     const key = `auth:nonce:${address.toLowerCase()}`;
-    const stored = await this.redisService.get(key);
-    if (!stored) {
+    const raw = await this.redisService.get(key);
+    if (!raw) {
       throw new UnauthorizedException('No challenge found or challenge expired. Please request a challenge first.');
     }
 
-    const expectedMessage = `Sign in to TruthBounty: ${stored}`;
+    let record: ChallengeRecord;
+    try {
+      record = JSON.parse(raw) as ChallengeRecord;
+    } catch {
+      // Stored value is not a valid record — treat as expired/invalid
+      await this.redisService.del(key).catch(() => null);
+      throw new UnauthorizedException('No challenge found or challenge expired. Please request a challenge first.');
+    }
+
+    // App-layer TTL check: enforce expiry independently of Redis to prevent
+    // Redis-vs-app clock desync (BE-182). Redis TTL is the backstop;
+    // this check is the authoritative gate.
+    const elapsedSeconds = (Date.now() - record.issuedAt) / 1000;
+    if (elapsedSeconds > this.NONCE_TTL_SECONDS) {
+      await this.redisService.del(key).catch(() => null);
+      throw new UnauthorizedException('Challenge expired. Please request a new challenge.');
+    }
+
+    const expectedMessage = `Sign in to TruthBounty: ${record.nonce}`;
 
     // Compare the full challenge message in constant time to avoid timing attacks.
     if (!this.constantTimeEquals(message, expectedMessage)) {
